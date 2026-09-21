@@ -1,0 +1,118 @@
+name: content-personalization-platform
+
+# Local martech stack: Postgres, RudderStack OSS, GTM tagging + preview
+# roles, and mock destinations. The Next.js app itself runs on the host via
+# `npm run dev` and reaches these services through the env-driven localhost
+# URLs in `.env`. This stack is local, but NOT air-gapped: the GTM image
+# fetches its published container configuration from Google at runtime —
+# see README.md.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cpp_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-locally}
+      POSTGRES_DB: ${POSTGRES_DB:-cpp}
+    ports:
+      - "5432:5432"
+    volumes:
+      - cpp_postgres_data:/var/lib/postgresql/data
+      - ./compose/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-cpp_local} -d ${POSTGRES_DB:-cpp}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rudderstack:
+    image: rudderstack/rudder-server:1.28
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      JOBS_DB_HOST: postgres
+      JOBS_DB_PORT: "5432"
+      JOBS_DB_USER: ${POSTGRES_USER:-cpp_local}
+      JOBS_DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me-locally}
+      JOBS_DB_DB_NAME: ${POSTGRES_DB:-cpp}
+      # Static, checked-in workspace config instead of RudderStack Cloud's
+      # deprecated Control Plane Lite — see compose/rudderstack/README.md.
+      RSERVER_BACKEND_CONFIG_CONFIG_FROM_FILE: "true"
+      RSERVER_BACKEND_CONFIG_CONFIG_JSONPATH: /etc/rudderstack/workspaceConfig.json
+      # No destinations are configured yet (this build slice is ingestion
+      # only; see workspaceConfig.json), so rudder-transformer is not wired
+      # up — add it when a real destination needs event transformation.
+    volumes:
+      - ./compose/rudderstack/workspaceConfig.json:/etc/rudderstack/workspaceConfig.json:ro
+      - cpp_rudderstack_logs:/rudder-server/log
+    ports:
+      - "8082:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  gtm-preview:
+    image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+    environment:
+      CONTAINER_CONFIG: ${GTM_CONTAINER_CONFIG:?Set GTM_CONTAINER_CONFIG in .env}
+      RUN_AS_PREVIEW_SERVER: "true"
+      PORT: "8080"
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/healthy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  gtm-server:
+    image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+    depends_on:
+      gtm-preview:
+        condition: service_healthy
+    environment:
+      CONTAINER_CONFIG: ${GTM_CONTAINER_CONFIG:?Set GTM_CONTAINER_CONFIG in .env}
+      # Local-only: the docs expect an HTTPS preview URL. Plain HTTP across
+      # the compose network is a known local-dev limitation — see README.md.
+      PREVIEW_SERVER_URL: http://gtm-preview:8080
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/healthy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mock-destinations:
+    build: ./services/mock-destinations
+    environment:
+      PORT: "8090"
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8090/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  # Named (not compose-default-prefixed-only) so `npm run stack:reset` can
+  # remove exactly these two volumes without touching unrelated Docker state.
+  cpp_postgres_data:
+    name: cpp_postgres_data
+  cpp_rudderstack_logs:
+    name: cpp_rudderstack_logs

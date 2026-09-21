@@ -1,0 +1,14 @@
+{
+  "name": "mock-destinations",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Node/Express logger standing in for GA4/ads destinations, so a developer can inspect what would be sent without contacting real vendors.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

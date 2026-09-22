@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { trackEvent } from "./track-event";
 import type { EventPropertiesByName } from "./events";
@@ -39,6 +39,50 @@ export function buildRouteKey(
   return allowed ? `${pathname}?${allowed}` : pathname;
 }
 
+export interface CommitPageViewInput {
+  pathname: string;
+  searchParams: URLSearchParams;
+  queryAllowlist?: readonly string[];
+  routeId: string;
+  pageType: PageType;
+  pageUrl: string;
+  title?: string;
+  contentId?: string;
+  referrer?: string;
+}
+
+/**
+ * Emits at most one `page_view` per committed normalized route key
+ * (`pathname` + allowlisted query). Repeat calls for the same key — Strict
+ * Mode, remounts, extra framework callbacks — are suppressed. A blocked or
+ * rejected dispatch still consumes the key so consent-blocked views are never
+ * replayed later.
+ */
+export function commitPageView(input: CommitPageViewInput) {
+  const queryAllowlist = input.queryAllowlist ?? [];
+  const routeKey = buildRouteKey(input.pathname, input.searchParams, queryAllowlist);
+  if (routeKey === lastCommittedRouteKey) {
+    return { status: "suppressed" as const };
+  }
+
+  const previousRouteId = lastCommittedRouteId ?? undefined;
+  lastCommittedRouteKey = routeKey;
+  lastCommittedRouteId = input.routeId;
+
+  return trackEvent({
+    name: "page_view",
+    properties: {
+      page_url: input.pageUrl,
+      page_type: input.pageType,
+      route_id: input.routeId,
+      ...(input.referrer ? { referrer: input.referrer } : {}),
+      ...(input.title ? { title: input.title } : {}),
+      ...(input.contentId ? { content_id: input.contentId } : {}),
+      ...(previousRouteId ? { previous_route_id: previousRouteId } : {}),
+    },
+  });
+}
+
 /** Test-only: clears the module-level dedup state between test cases. */
 export function __resetPageViewTrackingForTests(): void {
   lastCommittedRouteKey = null;
@@ -69,35 +113,24 @@ function PageViewTrackerInner({
 }: PageViewDescriptor) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const previousRouteIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    const routeKey = buildRouteKey(pathname, searchParams, queryAllowlist);
-    if (routeKey === lastCommittedRouteKey) {
-      return;
-    }
-
-    const previousRouteId = lastCommittedRouteId ?? undefined;
-    lastCommittedRouteKey = routeKey;
-    lastCommittedRouteId = routeId;
-    previousRouteIdRef.current = previousRouteId;
-
-    trackEvent({
-      name: "page_view",
-      properties: {
-        page_url:
-          typeof window !== "undefined"
-            ? window.location.href
-            : `http://localhost${pathname}`,
-        page_type: pageType,
-        route_id: routeId,
-        ...(typeof document !== "undefined" && document.referrer
-          ? { referrer: document.referrer }
-          : {}),
-        ...(title ? { title } : {}),
-        ...(contentId ? { content_id: contentId } : {}),
-        ...(previousRouteId ? { previous_route_id: previousRouteId } : {}),
-      },
+    commitPageView({
+      pathname,
+      searchParams: new URLSearchParams(searchParams.toString()),
+      queryAllowlist,
+      routeId,
+      pageType,
+      pageUrl:
+        typeof window !== "undefined"
+          ? window.location.href
+          : `http://localhost${pathname}`,
+      title,
+      contentId,
+      referrer:
+        typeof document !== "undefined" && document.referrer
+          ? document.referrer
+          : undefined,
     });
   }, [pathname, searchParams, routeId, pageType, contentId, title, queryAllowlist]);
 

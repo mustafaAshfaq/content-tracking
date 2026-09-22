@@ -31,5 +31,5 @@ export { generateUuid } from "./envelope";
 
 export { getDataLayer } from "./data-layer";
 
-export { PageViewTracker, buildRouteKey } from "./page-view-tracker";
-export type { PageViewDescriptor } from "./page-view-tracker";
+export { PageViewTracker, buildRouteKey, commitPageView } from "./page-view-tracker";
+export type { PageViewDescriptor, CommitPageViewInput } from "./page-view-tracker";

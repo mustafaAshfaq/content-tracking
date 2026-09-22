@@ -36,9 +36,13 @@ function buildCatalogueSchema() {
   };
 }
 
+function toCanonicalJson(value: unknown): string {
+  return (JSON.stringify(value, null, 2) + "\n").replace(/\r\n/g, "\n");
+}
+
 function main() {
   const mode = process.argv.includes("--check") ? "check" : "write";
-  const generated = JSON.stringify(buildCatalogueSchema(), null, 2) + "\n";
+  const generated = toCanonicalJson(buildCatalogueSchema());
 
   if (mode === "check") {
     if (!existsSync(OUTPUT_PATH)) {
@@ -47,7 +51,7 @@ function main() {
       );
       process.exit(1);
     }
-    const existing = readFileSync(OUTPUT_PATH, "utf8");
+    const existing = readFileSync(OUTPUT_PATH, "utf8").replace(/\r\n/g, "\n");
     if (existing !== generated) {
       console.error(
         "Event catalogue schema is out of date. Run `npm run schema:generate` and commit the result.",
@@ -59,7 +63,7 @@ function main() {
   }
 
   mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
-  writeFileSync(OUTPUT_PATH, generated);
+  writeFileSync(OUTPUT_PATH, generated, { encoding: "utf8" });
   console.log(`Wrote ${OUTPUT_PATH}`);
 }
 

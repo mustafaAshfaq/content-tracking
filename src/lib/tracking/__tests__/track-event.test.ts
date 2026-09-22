@@ -38,8 +38,8 @@ describe("trackEvent", () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
     expect(result.event.event_version).toBe(1);
-    expect(() => new Date(result.event.timestamp).toISOString()).not.toThrow();
-    expect(result.event.timestamp).toBe(new Date(result.event.timestamp).toISOString());
+    expect(result.event.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/);
+    expect(result.event.environment).toBe("development");
     expect(result.event.source).toBe("browser"); // jsdom test environment provides `window`
     expect(result.event.consent.necessary).toBe(true);
     expect(result.event.consent.analytics).toBe(true);

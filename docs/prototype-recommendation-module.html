@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PROTOTYPE - Recommendation module UX</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.45 system-ui, sans-serif; background: #f5f7fb; color: #172033; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 24px 100px; }
+    main { max-width: 1040px; margin: auto; }
+    .notice { background: #172033; color: white; padding: 12px 16px; border-radius: 12px; margin-bottom: 24px; }
+    .article { background: white; padding: 28px; border-radius: 18px; box-shadow: 0 8px 30px #17203312; }
+    .article h1 { max-width: 720px; font-size: clamp(2rem, 5vw, 3.8rem); line-height: 1.05; margin: 8px 0 16px; }
+    .article p { max-width: 680px; color: #526078; }
+    .module { margin-top: 32px; background: #eef3ff; border: 1px solid #d6e1ff; border-radius: 18px; padding: 20px; min-height: 274px; }
+    .module h2 { margin: 0; font-size: 1.25rem; }
+    .module-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 16px; }
+    .subtle { color: #60708a; font-size: .9rem; }
+    .products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .product { background: white; border: 1px solid #d9e0ed; border-radius: 14px; padding: 12px; min-height: 168px; }
+    .product .image { height: 76px; border-radius: 10px; background: linear-gradient(135deg, #ccd8ff, #f9d4b8); margin-bottom: 10px; }
+    .product strong { display: block; }
+    .product button, .pill { border: 0; border-radius: 999px; padding: 8px 12px; cursor: pointer; font: inherit; }
+    .product button { background: #172033; color: white; margin-top: 9px; }
+    .state { margin-top: 18px; padding: 12px; background: #fff; border-radius: 10px; color: #526078; }
+    .variant-b .module { background: white; border-color: #d9e0ed; display: grid; grid-template-columns: 190px 1fr; gap: 20px; }
+    .variant-b .module-head { display: block; }
+    .variant-b .products { grid-template-columns: 1fr; }
+    .variant-b .product { display: grid; grid-template-columns: 72px 1fr auto; gap: 10px; align-items: center; min-height: 78px; }
+    .variant-b .product .image { height: 58px; margin: 0; }
+    .variant-c .module { background: #172033; color: white; border: 0; padding: 0; overflow: hidden; }
+    .variant-c .module-head { padding: 22px 22px 14px; margin: 0; }
+    .variant-c .subtle { color: #b6c2d9; }
+    .variant-c .products { display: flex; overflow: hidden; gap: 12px; padding: 0 22px 22px; }
+    .variant-c .product { min-width: 220px; background: #27334b; border-color: #3d4b67; color: white; }
+    .variant-c .product button { background: #f1c75b; color: #172033; }
+    .toolbar { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid #cbd4e4; box-shadow: 0 8px 28px #1720332b; border-radius: 999px; padding: 8px; display: flex; gap: 10px; align-items: center; z-index: 2; }
+    .toolbar button { border: 0; background: #eef3ff; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; font-size: 1.1rem; }
+    .toolbar span { min-width: 190px; text-align: center; font-weight: 650; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+    .controls button { background: white; border: 1px solid #cbd4e4; }
+    @media (max-width: 700px) { .products { grid-template-columns: 1fr; } .variant-b .module { display: block; } .variant-b .module-head { margin-bottom: 16px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="notice"><strong>Throwaway UI prototype.</strong> Compare three module structures and five runtime states. Use the bottom switcher or URL <code>?variant=A</code>.</div>
+    <div class="controls" aria-label="Prototype states">
+      <button class="pill" data-state="default">Default fallback</button>
+      <button class="pill" data-state="loading">Loading</button>
+      <button class="pill" data-state="personalized">Personalized</button>
+      <button class="pill" data-state="empty">Empty segment</button>
+      <button class="pill" data-state="error">Activation error</button>
+    </div>
+    <article class="article">
+      <div class="subtle">TECHNOLOGY · 8 min read</div>
+      <h1>Designing calmer systems for a noisy digital world</h1>
+      <p>Good product experiences make complex systems feel legible. This article explores how small, intentional defaults help people move through uncertainty.</p>
+      <p>As teams add more signals, the interface needs stronger hierarchy: show what matters, explain why it matters, and keep the next action obvious.</p>
+      <section class="module" id="module" aria-live="polite"></section>
+    </article>
+  </main>
+  <nav class="toolbar" aria-label="Prototype variants">
+    <button id="previous" aria-label="Previous variant">←</button>
+    <span id="variant-label"></span>
+    <button id="next" aria-label="Next variant">→</button>
+  </nav>
+  <script>
+    const variants = ['A', 'B', 'C'];
+    const names = { A: 'Card grid', B: 'Editorial rail', C: 'Dark horizontal shelf' };
+    const products = [
+      ['Signal journal', 'technology'], ['Quiet keyboard', 'technology'], ['Field notes', 'technology']
+    ];
+    const params = new URLSearchParams(location.search);
+    let variant = variants.includes(params.get('variant')) ? params.get('variant') : 'A';
+    let state = params.get('state') || 'default';
+
+    function renderProducts(items) {
+      return '<div class="products">' + items.map((item, i) =>
+        `<article class="product"><div class="image" aria-hidden="true"></div><div><strong>${item[0]}</strong><span class="subtle">${item[1]}</span></div><button data-click="${i}">View product</button></article>`
+      ).join('') + '</div>';
+    }
+    function render() {
+      document.body.className = `variant-${variant.toLowerCase()}`;
+      document.getElementById('variant-label').textContent = `${variant} — ${names[variant]}`;
+      const module = document.getElementById('module');
+      const heading = state === 'personalized' ? 'Recommended for you' : 'Popular right now';
+      const note = state === 'default' ? 'A useful starting point for every visitor.'
+        : state === 'loading' ? 'Finding products based on your interests…'
+        : state === 'personalized' ? 'Based on your recent reading.'
+        : state === 'empty' ? 'No matching products yet. Here are popular picks instead.'
+        : 'We could not load personalized picks. Here are popular picks instead.';
+      const items = state === 'personalized' ? products.slice(0, 2) : products;
+      module.innerHTML = `<div class="module-head"><div><h2>${heading}</h2><div class="subtle">${note}</div></div>${state === 'personalized' ? '<span class="subtle">Technology</span>' : ''}</div>` +
+        (state === 'loading' ? '<div class="state">Loading keeps the same reserved module height to avoid layout shift.</div>' :
+        `<div>${renderProducts(items)}</div><div class="state">${state === 'default' ? 'Personalized recommendations appear here only after Personalisation consent.' : state === 'personalized' ? 'Module: personalized · impression_id: demo-impression-001' : 'Module: default fallback · no activation result used'}</div>`);
+      module.querySelectorAll('[data-click]').forEach(button => button.addEventListener('click', () => {
+        button.textContent = 'Clicked — recommendation_clicked';
+      }));
+    }
+    function setVariant(index) {
+      variant = variants[(index + variants.length) % variants.length];
+      history.replaceState({}, '', `?variant=${variant}&state=${state}`);
+      render();
+    }
+    document.getElementById('previous').onclick = () => setVariant(variants.indexOf(variant) - 1);
+    document.getElementById('next').onclick = () => setVariant(variants.indexOf(variant) + 1);
+    document.addEventListener('keydown', event => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
+      if (event.key === 'ArrowLeft') setVariant(variants.indexOf(variant) - 1);
+      if (event.key === 'ArrowRight') setVariant(variants.indexOf(variant) + 1);
+    });
+    document.querySelectorAll('[data-state]').forEach(button => button.onclick = () => {
+      state = button.dataset.state;
+      history.replaceState({}, '', `?variant=${variant}&state=${state}`);
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

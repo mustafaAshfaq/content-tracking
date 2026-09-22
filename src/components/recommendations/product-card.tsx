@@ -17,11 +17,11 @@ export function ProductCard({
         height={300}
         className="aspect-[4/3] w-full object-cover"
       />
-      <div className="flex flex-1 flex-col gap-1 p-3">
+      <div className="flex min-h-[6.5rem] flex-1 flex-col gap-1 p-3">
         <span className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           {product.category}
         </span>
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 dark:text-zinc-50">
           {product.name}
         </h3>
         <a
@@ -45,10 +45,10 @@ export function ProductCardSkeleton() {
       aria-hidden="true"
     >
       <div className="aspect-[4/3] w-full bg-zinc-200 dark:bg-zinc-800" />
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <div className="h-3 w-1/3 rounded bg-zinc-200 dark:bg-zinc-800" />
-        <div className="h-4 w-2/3 rounded bg-zinc-200 dark:bg-zinc-800" />
-        <div className="mt-auto h-3 w-1/4 rounded bg-zinc-200 dark:bg-zinc-800" />
+      <div className="flex min-h-[6.5rem] flex-1 flex-col gap-1 p-3">
+        <div className="h-4 w-1/3 rounded bg-zinc-200 dark:bg-zinc-800" />
+        <div className="h-5 w-2/3 rounded bg-zinc-200 dark:bg-zinc-800" />
+        <div className="mt-auto h-5 w-1/4 rounded bg-zinc-200 dark:bg-zinc-800" />
       </div>
     </div>
   );

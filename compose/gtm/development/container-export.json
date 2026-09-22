@@ -1,0 +1,25 @@
+{
+  "exportFormatVersion": 2,
+  "exportTime": "2026-01-01 00:00:00",
+  "containerVersion": {
+    "path": "accounts/0/containers/0/versions/0",
+    "accountId": "0",
+    "containerId": "0",
+    "containerVersionId": "0",
+    "name": "content-tracking development",
+    "container": {
+      "path": "accounts/0/containers/0",
+      "accountId": "0",
+      "containerId": "0",
+      "name": "content-tracking (development)",
+      "publicId": "GTM-DEVELOP",
+      "usageContext": ["server"],
+      "fingerprint": "0",
+      "tagManagerUrl": "https://tagmanager.google.com/"
+    },
+    "tag": [],
+    "trigger": [],
+    "variable": [],
+    "fingerprint": "0"
+  }
+}

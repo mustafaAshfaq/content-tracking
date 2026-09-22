@@ -1,0 +1,24 @@
+{
+  "workspaceId": "local-workspace",
+  "sources": [
+    {
+      "id": "local-web-source",
+      "name": "Local Web (Next.js)",
+      "writeKey": "LOCAL_DEV_WRITE_KEY_PLACEHOLDER",
+      "enabled": true,
+      "workspaceId": "local-workspace",
+      "deleted": false,
+      "config": {},
+      "sourceDefinitionId": "http-source-def",
+      "sourceDefinition": {
+        "id": "http-source-def",
+        "name": "HTTP",
+        "displayName": "HTTP",
+        "category": null,
+        "type": "cloud"
+      },
+      "destinations": []
+    }
+  ],
+  "libraries": []
+}

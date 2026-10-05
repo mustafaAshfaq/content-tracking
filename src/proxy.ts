@@ -8,18 +8,12 @@ export const config = {
 
 /**
  * Applies the CSP header to every response and CORS handling to `/api/*`
- * routes (including short-circuiting preflight `OPTIONS` requests). Route
- * handlers still return their own explicit 4xx for unknown paths — this
- * only adds the shared security headers. (Next.js 16 renamed this file
- * convention from `middleware.ts` to `proxy.ts`.)
+ * routes. Unknown paths, including `OPTIONS`, stay with the route handler,
+ * which returns an explicit 4xx. (Next.js 16 renamed this file convention
+ * from `middleware.ts` to `proxy.ts`.)
  */
 export function proxy(request: NextRequest) {
   const isApiRequest = request.nextUrl.pathname.startsWith("/api/");
-
-  if (isApiRequest && request.method === "OPTIONS") {
-    return applyCorsHeaders(new NextResponse(null, { status: 204 }), request);
-  }
-
   const response = NextResponse.next();
   response.headers.set("Content-Security-Policy", buildContentSecurityPolicy());
 

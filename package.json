@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:mocks": "npm test --prefix services/mock-destinations",
     "test:watch": "vitest",
     "schema:generate": "tsx scripts/generate-event-schema.ts",
     "schema:check": "tsx scripts/generate-event-schema.ts --check",

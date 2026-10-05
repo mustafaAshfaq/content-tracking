@@ -20,6 +20,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install mock-destinations dependencies
+        working-directory: services/mock-destinations
+        run: npm ci
+
       - name: Lint
         run: npm run lint
 
@@ -28,6 +32,10 @@ jobs:
 
       - name: Unit tests
         run: npm run test
+
+      - name: Mock destination contract tests
+        working-directory: services/mock-destinations
+        run: npm test
 
       - name: Validate content/product fixtures
         run: npm run fixtures:validate

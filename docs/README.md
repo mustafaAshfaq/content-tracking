@@ -3,7 +3,7 @@
 A local article site (Next.js App Router + TypeScript + React) with a typed,
 schema-validated `trackEvent()` data-layer boundary, checked-in MDX
 articles/product fixtures, and a client-rendered "Recommended products"
-module. See `.scratch/content-personalization-platform/FINAL-HANDOFF-SPEC.md`
+module. See `docs/FINAL-HANDOFF-SPEC.md`
 for the full implementation contract this repo is building toward; this
 README covers what's implemented so far and how to run it.
 
@@ -28,6 +28,7 @@ standalone; the Compose stack below is for the martech infrastructure
 | `npm run lint`                 | ESLint                                                                 |
 | `npm run typecheck`            | `tsc --noEmit`                                                        |
 | `npm run test`                 | Vitest unit tests                                                      |
+| `npm run test:mocks`           | Mock-destination path, payload-log, and CORS contract tests            |
 | `npm run schema:generate`      | Regenerates `schemas/event-catalogue.schema.json` from the zod schemas |
 | `npm run schema:check`         | Fails if the generated schema is out of date (CI drift check)         |
 | `npm run fixtures:validate`    | Validates the article/product fixtures (IDs, versions, mappings, fallback list) |
@@ -109,7 +110,7 @@ else on your machine.
 **This local stack is not truly air-gapped.** The GTM server-side image
 fetches its published container configuration from Google at runtime, and
 authoring a container at all requires a (free) Google account — see
-`.scratch/content-personalization-platform/research/04-gtm-server-side-findings.md`.
+`docs/research/04-gtm-server-side-findings.md`.
 Treat "local" as "runs on your own hardware, no GCP project/billing needed,"
 not "zero external network contact."
 
@@ -128,10 +129,13 @@ not "zero external network contact."
 
 ### Production differences
 
-Production uses exact HTTPS origins (`APP_ORIGIN` etc.), `Secure` cookies,
-no `mock-destinations` origin, and no runtime dependency on GTM Preview or
-Tag Assistant — see `src/lib/security/csp.ts`, which computes a stricter
-policy whenever `NODE_ENV=production`.
+Production uses exact HTTPS origins (`APP_ORIGIN`,
+`NEXT_PUBLIC_GTM_TAGGING_ORIGIN`, `NEXT_PUBLIC_RUDDERSTACK_DATAPLANE_URL`),
+`Secure` first-party cookies, no `mock-destinations` origin, and no runtime
+dependency on GTM Preview or Tag Assistant. The server refuses to start when
+any required production origin is missing or is not an exact `https` origin
+(no path, query, or wildcard). `next build` does not need those values;
+`next start` does. See `src/lib/security/config.ts`.
 
 ## CSP / CORS
 

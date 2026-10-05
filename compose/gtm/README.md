@@ -24,5 +24,5 @@ Do not confuse these files with the `GTM_CONTAINER_CONFIG` value in `.env`:
 
 The runtime containers are provisioned from `GTM_CONTAINER_CONFIG`, which fetches
 the published container from Google — which is why the local GTM stack is **not
-truly air-gapped** (see the repo `README.md` and
+truly air-gapped** (see `docs/README.md` and
 `docs/research/04-gtm-server-side-findings.md`).

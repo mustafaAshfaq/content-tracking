@@ -5,7 +5,7 @@ name: content-personalization-platform
 # `npm run dev` and reaches these services through the env-driven localhost
 # URLs in `.env`. This stack is local, but NOT air-gapped: the GTM image
 # fetches its published container configuration from Google at runtime —
-# see README.md.
+# see docs/README.md.
 
 services:
   postgres:
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
   rudderstack:
-    image: rudderstack/rudder-server:1.28
+    image: rudderlabs/rudder-server:1.28
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,8 +53,13 @@ services:
       - cpp_rudderstack_logs:/rudder-server/log
     ports:
       - "8082:8080"
+    # The image ships curl (current alpine builds) or wget (older builds).
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/health"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:8080/health >/dev/null || wget -q -O /dev/null http://127.0.0.1:8080/health",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -83,7 +88,7 @@ services:
     environment:
       CONTAINER_CONFIG: ${GTM_CONTAINER_CONFIG:?Set GTM_CONTAINER_CONFIG in .env}
       # Local-only: the docs expect an HTTPS preview URL. Plain HTTP across
-      # the compose network is a known local-dev limitation — see README.md.
+      # the compose network is a known local-dev limitation — see docs/README.md.
       PREVIEW_SERVER_URL: http://gtm-preview:8080
       PORT: "8080"
     ports:
@@ -96,14 +101,23 @@ services:
     restart: unless-stopped
 
   mock-destinations:
-    build: ./services/mock-destinations
+    build:
+      context: ./services/mock-destinations
+      dockerfile: Dockerfile
     environment:
       PORT: "8090"
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
     ports:
       - "8090:8090"
+    # node:alpine has no wget. Probe with the Node binary the image already runs.
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8090/health"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8090/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10

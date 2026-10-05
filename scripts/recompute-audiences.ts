@@ -10,7 +10,7 @@
  */
 console.error(
   "Audience recomputation is not implemented yet in this build slice. " +
-    "See .scratch/content-personalization-platform/issues/06-audience-compute-and-activation.md " +
+    "See docs/issues/06-audience-compute-and-activation.md " +
     "for the design this command will eventually implement.",
 );
 process.exit(1);

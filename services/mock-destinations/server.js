@@ -1,3 +1,5 @@
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import express from "express";
 
 /**
@@ -8,62 +10,72 @@ import express from "express";
  * this service is never an open proxy.
  */
 
-const PORT = process.env.PORT ?? 8090;
-const ALLOWED_ORIGIN = process.env.APP_ORIGIN ?? "http://localhost:3000";
 const ALLOWED_METHODS = "GET, POST, OPTIONS";
 const ALLOWED_HEADERS = "Content-Type, Authorization, X-Write-Key";
 
-const app = express();
-app.use(express.json({ limit: "256kb" }));
+export function createApp(options = {}) {
+  const allowedOrigin = options.allowedOrigin ?? process.env.APP_ORIGIN ?? "http://localhost:3000";
+  const app = express();
+  app.use(express.json({ limit: "256kb" }));
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin === ALLOWED_ORIGIN) {
-    res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-    res.setHeader("Vary", "Origin");
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin === allowedOrigin) {
+      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+      res.setHeader("Vary", "Origin");
+    }
+    res.setHeader("Access-Control-Allow-Methods", ALLOWED_METHODS);
+    res.setHeader("Access-Control-Allow-Headers", ALLOWED_HEADERS);
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+    next();
+  });
+
+  /** In-memory log of received payloads, most recent first. Local/dev only. */
+  const receivedPayloads = [];
+
+  function logPayload(destination, req, res) {
+    const entry = {
+      destination,
+      received_at: new Date().toISOString(),
+      method: req.method,
+      path: req.path,
+      query: req.query,
+      body: req.body,
+    };
+    receivedPayloads.unshift(entry);
+    receivedPayloads.length = Math.min(receivedPayloads.length, 500);
+    console.log(`[mock-destinations] ${destination}`, JSON.stringify(entry));
+    res.status(200).json({ ok: true, destination });
   }
-  res.setHeader("Access-Control-Allow-Methods", ALLOWED_METHODS);
-  res.setHeader("Access-Control-Allow-Headers", ALLOWED_HEADERS);
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-  next();
-});
 
-/** In-memory log of received payloads, most recent first. Local/dev only. */
-const receivedPayloads = [];
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
 
-function logPayload(destination, req, res) {
-  const entry = {
-    destination,
-    received_at: new Date().toISOString(),
-    method: req.method,
-    path: req.path,
-    query: req.query,
-    body: req.body,
-  };
-  receivedPayloads.unshift(entry);
-  receivedPayloads.length = Math.min(receivedPayloads.length, 500);
-  console.log(`[mock-destinations] ${destination}`, JSON.stringify(entry));
-  res.status(200).json({ ok: true, destination });
+  app.post("/ga4/collect", (req, res) => logPayload("ga4", req, res));
+  app.post("/ads/conversion", (req, res) => logPayload("ads", req, res));
+
+  /** Inspection endpoint for developers/tests — never a real destination. */
+  app.get("/_inspect/payloads", (_req, res) => {
+    res.status(200).json({ payloads: receivedPayloads });
+  });
+
+  app.use((req, res) => {
+    res.status(404).json({ error: "not_found", path: req.path });
+  });
+
+  return app;
 }
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok" });
-});
+const entry = process.argv[1];
+const isDirectRun =
+  entry !== undefined && import.meta.url === pathToFileURL(path.resolve(entry)).href;
 
-app.post("/ga4/collect", (req, res) => logPayload("ga4", req, res));
-app.post("/ads/conversion", (req, res) => logPayload("ads", req, res));
-
-/** Inspection endpoint for developers/tests — never a real destination. */
-app.get("/_inspect/payloads", (_req, res) => {
-  res.status(200).json({ payloads: receivedPayloads });
-});
-
-app.use((req, res) => {
-  res.status(404).json({ error: "not_found", path: req.path });
-});
-
-app.listen(PORT, () => {
-  console.log(`[mock-destinations] listening on :${PORT}`);
-});
+if (isDirectRun) {
+  const port = process.env.PORT ?? 8090;
+  createApp().listen(port, () => {
+    console.log(`[mock-destinations] listening on :${port}`);
+  });
+}

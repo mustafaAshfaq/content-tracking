@@ -1,13 +1,4 @@
-const APP_ORIGIN = process.env.APP_ORIGIN ?? "http://localhost:3000";
-const GTM_TAGGING_ORIGIN =
-  process.env.NEXT_PUBLIC_GTM_TAGGING_ORIGIN ?? "http://localhost:8080";
-const GTM_PREVIEW_ORIGIN =
-  process.env.NEXT_PUBLIC_GTM_PREVIEW_ORIGIN ?? "http://localhost:8081";
-const RUDDERSTACK_ORIGIN =
-  process.env.NEXT_PUBLIC_RUDDERSTACK_DATAPLANE_URL ?? "http://localhost:8082";
-const MOCK_DESTINATIONS_ORIGIN =
-  process.env.NEXT_PUBLIC_MOCK_DESTINATIONS_ORIGIN ?? "http://localhost:8090";
-const TAG_ASSISTANT_ORIGIN = "https://tagassistant.google.com";
+import { resolveSecurityConfig, type SecurityEnv } from "./config";
 
 /**
  * Builds the Content-Security-Policy header value. Development additionally
@@ -17,26 +8,34 @@ const TAG_ASSISTANT_ORIGIN = "https://tagassistant.google.com";
  *
  * `isProduction` defaults to the real environment but is an explicit
  * parameter so both environments' policies are directly unit-testable.
+ * Production fails closed unless the required origins are exact https URLs.
  */
 export function buildContentSecurityPolicy(
   isProduction: boolean = process.env.NODE_ENV === "production",
+  env: SecurityEnv = process.env,
 ): string {
-  const connectSrc = ["'self'", APP_ORIGIN, GTM_TAGGING_ORIGIN, RUDDERSTACK_ORIGIN];
-  if (!isProduction) {
-    connectSrc.push(MOCK_DESTINATIONS_ORIGIN);
+  const config = resolveSecurityConfig(env, isProduction);
+
+  const connectSrc = [
+    "'self'",
+    config.appOrigin,
+    config.gtmTaggingOrigin,
+    config.rudderstackOrigin,
+  ];
+  if (config.mockDestinationsOrigin) {
+    connectSrc.push(config.mockDestinationsOrigin);
   }
 
   const frameSrc = ["'self'"];
-  if (!isProduction) {
-    frameSrc.push(GTM_PREVIEW_ORIGIN, TAG_ASSISTANT_ORIGIN);
-  }
+  if (config.gtmPreviewOrigin) frameSrc.push(config.gtmPreviewOrigin);
+  if (config.tagAssistantOrigin) frameSrc.push(config.tagAssistantOrigin);
 
   const directives: [string, string[]][] = [
     ["default-src", ["'self'"]],
     ["connect-src", dedupe(connectSrc)],
-    ["img-src", ["'self'", "data:", GTM_TAGGING_ORIGIN]],
+    ["img-src", ["'self'", "data:", config.gtmTaggingOrigin]],
     ["frame-src", dedupe(frameSrc)],
-    ["script-src", ["'self'", GTM_TAGGING_ORIGIN]],
+    ["script-src", ["'self'", config.gtmTaggingOrigin]],
     ["style-src", ["'self'", "'unsafe-inline'"]],
     ["base-uri", ["'self'"]],
     ["form-action", ["'self'"]],

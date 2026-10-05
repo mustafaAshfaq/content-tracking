@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 /**
@@ -12,6 +13,24 @@ function run(command, args) {
   if (result.status !== 0) {
     console.error(`Command failed: ${command} ${args.join(" ")}`);
     process.exit(result.status ?? 1);
+  }
+}
+
+const requiredFiles = [
+  ".env",
+  "compose/postgres/init/001_schemas.sql",
+  "compose/rudderstack/workspaceConfig.json",
+  "compose/gtm/development/container-export.json",
+  "compose/gtm/staging/container-export.json",
+  "compose/gtm/production/container-export.json",
+];
+
+for (const file of requiredFiles) {
+  if (!existsSync(file)) {
+    console.error(
+      `Missing ${file}. Copy .env.example to .env before bootstrap, and keep the checked-in compose config in place.`,
+    );
+    process.exit(1);
   }
 }
 

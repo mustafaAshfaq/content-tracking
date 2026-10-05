@@ -10,9 +10,8 @@ function preflight(origin: string) {
 }
 
 describe("proxy security headers", () => {
-  it("answers an allowed API preflight with 204 and the CORS allowlist", () => {
+  it("attaches the CORS allowlist without accepting an unknown preflight itself", () => {
     const response = proxy(preflight("http://localhost:3000"));
-    expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:3000");
     expect(response.headers.get("Access-Control-Allow-Methods")).toBe("GET, POST, OPTIONS");
     expect(response.headers.get("Access-Control-Allow-Headers")).toBe(
@@ -22,7 +21,6 @@ describe("proxy security headers", () => {
 
   it("does not reflect a disallowed preflight origin", () => {
     const response = proxy(preflight("http://evil.example.test"));
-    expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 

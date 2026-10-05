@@ -150,7 +150,8 @@ any required production origin is missing or is not an exact `https` origin
 - CORS on every `/api/*` route (`src/lib/security/cors.ts`): only
   `http://localhost:3000` (or the configured `APP_ORIGIN`) is allowed, with
   `GET, POST, OPTIONS` and `Content-Type, Authorization, X-Write-Key`
-  headers. Preflight (`OPTIONS`) requests are answered directly.
+  headers. An `OPTIONS` request to an unknown path is still a 404; only a
+  documented path answers preflight with 204.
 
 Any `/api/*` path that isn't explicitly defined returns a `404` from the
 catch-all route handler (`src/app/api/[...catchAll]/route.ts`) — the app is

@@ -12,6 +12,7 @@ import express from "express";
 
 const ALLOWED_METHODS = "GET, POST, OPTIONS";
 const ALLOWED_HEADERS = "Content-Type, Authorization, X-Write-Key";
+const KNOWN_PATHS = new Set(["/health", "/ga4/collect", "/ads/conversion", "/_inspect/payloads"]);
 
 export function createApp(options = {}) {
   const allowedOrigin = options.allowedOrigin ?? process.env.APP_ORIGIN ?? "http://localhost:3000";
@@ -26,7 +27,7 @@ export function createApp(options = {}) {
     }
     res.setHeader("Access-Control-Allow-Methods", ALLOWED_METHODS);
     res.setHeader("Access-Control-Allow-Headers", ALLOWED_HEADERS);
-    if (req.method === "OPTIONS") {
+    if (req.method === "OPTIONS" && KNOWN_PATHS.has(req.path)) {
       return res.sendStatus(204);
     }
     next();

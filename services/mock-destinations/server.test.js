@@ -47,6 +47,19 @@ test("logs GA4 and ads payloads for inspection and rejects unknown paths", async
     assert.equal(unknown.status, 404);
     assert.deepEqual(await unknown.json(), { error: "not_found", path: "/ga4/debug" });
 
+    const unknownPreflight = await fetch(`${base}/ga4/debug`, {
+      method: "OPTIONS",
+      headers: { origin: "http://localhost:3000" },
+    });
+    assert.equal(unknownPreflight.status, 404);
+
+    const knownPreflight = await fetch(`${base}/ga4/collect`, {
+      method: "OPTIONS",
+      headers: { origin: "http://localhost:3000" },
+    });
+    assert.equal(knownPreflight.status, 204);
+    assert.equal(knownPreflight.headers.get("access-control-allow-origin"), "http://localhost:3000");
+
     const root = await fetch(`${base}/`);
     assert.equal(root.status, 404);
   });

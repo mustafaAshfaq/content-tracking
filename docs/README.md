@@ -19,6 +19,21 @@ required just to browse the article site — the data-layer boundary works
 standalone; the Compose stack below is for the martech infrastructure
 (Postgres/RudderStack/GTM/mocks) that later slices forward events into.
 
+### Dev Container
+
+Reopen the folder in the Dev Container named **Content Personalization Platform**.
+That starts Postgres, RudderStack, mock destinations, and the Next.js app on
+the Compose network. The app reaches Postgres at the service name `postgres`;
+your browser still uses the published host ports, including
+[http://localhost:3000](http://localhost:3000).
+
+GTM is not part of that configuration. To opt in, paste a real Container
+Config (below) into `.env` and reopen with the Dev Container named
+**With GTM**. Neither configuration runs Docker inside Docker or mounts the
+Docker socket. Host `npm run dev` remains available when you are not in a
+Dev Container. Inside the container, on Node 22: `npm run lint`,
+`npm run typecheck`, `npm run test`, and `npm run test:mocks`.
+
 ## Scripts
 
 | Script                         | What it does                                                        |
@@ -32,7 +47,8 @@ standalone; the Compose stack below is for the martech infrastructure
 | `npm run schema:generate`      | Regenerates `schemas/event-catalogue.schema.json` from the zod schemas |
 | `npm run schema:check`         | Fails if the generated schema is out of date (CI drift check)         |
 | `npm run fixtures:validate`    | Validates the article/product fixtures (IDs, versions, mappings, fallback list) |
-| `npm run stack:up` / `down`    | `docker compose up -d --wait` / `down`                                 |
+| `npm run stack:up` / `down`    | `docker compose up -d --wait` / `down` (GTM stays off)                 |
+| `npm run stack:up:gtm`         | Same as `stack:up`, plus the `gtm` profile (tagging + preview)         |
 | `npm run stack:bootstrap`      | Brings the stack up, applies Postgres migrations, validates fixtures  |
 | `npm run stack:migrate`        | Re-applies `compose/postgres/init/*.sql` against an existing volume   |
 | `npm run stack:reset`          | Removes only this project's named Docker volumes                      |
@@ -96,16 +112,24 @@ npm run stack:bootstrap
 | -------------------- | ------ | ------------------------------------------------------- |
 | `postgres`            | 5432   | RudderStack state + app warehouse (isolated schemas)     |
 | `rudderstack`         | 8082   | RudderStack OSS ingestion (static `workspaceConfig.json`) |
-| `gtm-server`          | 8080   | GTM server-side tagging role                             |
-| `gtm-preview`         | 8081   | GTM server-side preview role (dev-only dependency)       |
 | `mock-destinations`   | 8090   | Node/Express logger standing in for GA4/ads (dev-only)   |
+| `gtm-server`          | 8080   | GTM tagging role. Off unless the `gtm` profile is on    |
+| `gtm-preview`         | 8081   | GTM preview role. Off unless the `gtm` profile is on    |
 
-The Next.js app itself runs on the host (`npm run dev`, port `3000`) and
-talks to these services through the env-driven localhost URLs in `.env`.
+`npm run stack:bootstrap` and `npm run stack:up` do not create the GTM
+services, and the Compose file still parses when `GTM_CONTAINER_CONFIG` is
+empty. `npm run stack:up:gtm` enables the `gtm` profile. With an empty
+credential those two services fail their healthchecks; the rest of the
+project still parses. A real credential plus outbound access to Google is
+what makes them healthy.
+
+On the host, `npm run dev` (port `3000`) talks to these services through the
+localhost URLs in `.env`. In the Dev Container, server-side `POSTGRES_HOST`
+is `postgres` and browser-facing origins stay on the published host ports.
 Compose healthchecks gate startup so nothing depends on a service before
 it's actually ready. `cpp_postgres_data` and `cpp_rudderstack_logs` are named
 project volumes; `npm run stack:reset` removes exactly those two and nothing
-else on your machine.
+else on your machine. Reset also stops an opted-in GTM pair.
 
 **This local stack is not truly air-gapped.** The GTM server-side image
 fetches its published container configuration from Google at runtime, and
@@ -123,9 +147,7 @@ not "zero external network contact."
   self-hosted control plane, "Control Plane Lite," is deprecated).
 - `compose/gtm/{development,staging,production}/container-export.json` are
   per-environment **container exports** (authoring content — tags/triggers/
-  variables) — checked in and non-secret. This is distinct from
-  `GTM_CONTAINER_CONFIG` in `.env`, which is an opaque runtime provisioning
-  string tied to a real container and must never be committed.
+  variables) — checked in and non-secret. A `container-export.json` is not the runtime credential. Copy the Container Config string from GTM → your server container → "Manually provision tagging server", and never commit it.
 
 ### Production differences
 

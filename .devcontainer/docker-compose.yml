@@ -1,0 +1,30 @@
+# Merged with the repo Compose file by the Dev Container. The app service
+# joins that project's default network, so Postgres, RudderStack, and the
+# mock destinations are reachable by service name. Browser-facing origins
+# are not overridden here: the browser is on the host.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    volumes:
+      - ..:/workspace
+      - devcontainer_node_modules:/workspace/node_modules
+      - devcontainer_mock_node_modules:/workspace/services/mock-destinations/node_modules
+    command: sleep infinity
+    environment:
+      POSTGRES_HOST: postgres
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rudderstack:
+        condition: service_healthy
+      mock-destinations:
+        condition: service_healthy
+
+volumes:
+  devcontainer_node_modules:
+  devcontainer_mock_node_modules:

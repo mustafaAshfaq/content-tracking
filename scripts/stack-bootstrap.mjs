@@ -2,8 +2,9 @@ import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 /**
- * Brings up the compose stack, waits for every healthcheck to pass, applies
- * Postgres migrations, and validates the checked-in content fixtures.
+ * Brings up the compose stack without the GTM profile, waits for every
+ * healthcheck to pass, applies Postgres migrations, and validates the
+ * checked-in content fixtures.
  * Audience recomputation is deliberately NOT run here — see
  * `scripts/recompute-audiences.ts`.
  */
@@ -39,5 +40,5 @@ run("npx", ["tsx", "scripts/stack-migrate.ts"]);
 run("npm", ["run", "fixtures:validate"]);
 
 console.log(
-  "\nStack is up and bootstrapped. Run `npm run dev` to start the Next.js app.",
+  "\nStack is up and bootstrapped without GTM. Run `npm run dev` to start the Next.js app. To opt into GTM, paste your Container Config into .env and run `npm run stack:up:gtm`.",
 );

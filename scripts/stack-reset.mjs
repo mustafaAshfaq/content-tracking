@@ -10,7 +10,9 @@ function run(command, args) {
   return spawnSync(command, args, { stdio: "inherit", shell: true });
 }
 
-run("docker", ["compose", "down"]);
+// Include the gtm profile so an opted-in tagging/preview pair is stopped too.
+// Volume removal below stays limited to the two named project volumes.
+run("docker", ["compose", "--profile", "gtm", "down"]);
 
 const volumes = ["cpp_postgres_data", "cpp_rudderstack_logs"];
 for (const volume of volumes) {

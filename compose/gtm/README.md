@@ -11,6 +11,11 @@ no tags/triggers/variables yet, so each export is an empty container that only
 records its name, `server` usage context, and a placeholder public ID. Real
 authoring content is added in later slices.
 
+GTM tagging and preview are off unless you opt in with `npm run stack:up:gtm`
+or the **With GTM** Dev Container. Leaving `GTM_CONTAINER_CONFIG` empty does
+not start them. Opting in with an empty value still lets the Compose project
+parse; those two services then fail their own healthchecks.
+
 ## Not the same as `GTM_CONTAINER_CONFIG`
 
 Do not confuse these files with the `GTM_CONTAINER_CONFIG` value in `.env`:

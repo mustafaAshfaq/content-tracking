@@ -1,9 +1,11 @@
 name: content-personalization-platform
 
-# Local martech stack: Postgres, RudderStack OSS, GTM tagging + preview
-# roles, and mock destinations. The Next.js app itself runs on the host via
-# `npm run dev` and reaches these services through the env-driven localhost
-# URLs in `.env`. This stack is local, but NOT air-gapped: the GTM image
+# Local martech stack: Postgres, RudderStack OSS, mock destinations, and
+# (only with the `gtm` profile) GTM tagging + preview roles. The Next.js app
+# runs on the host via `npm run dev`, or as the Dev Container app service.
+# Host processes use localhost. The Dev Container overrides POSTGRES_HOST to
+# the Compose service name; browser-facing origins stay on published host
+# ports either way. This stack is local, but NOT air-gapped: the GTM image
 # fetches its published container configuration from Google at runtime —
 # see docs/README.md.
 
@@ -66,9 +68,11 @@ services:
     restart: unless-stopped
 
   gtm-preview:
+    profiles:
+      - gtm
     image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
     environment:
-      CONTAINER_CONFIG: ${GTM_CONTAINER_CONFIG:?Set GTM_CONTAINER_CONFIG in .env}
+      CONTAINER_CONFIG: ${GTM_CONTAINER_CONFIG:-}
       RUN_AS_PREVIEW_SERVER: "true"
       PORT: "8080"
     ports:
@@ -81,12 +85,16 @@ services:
     restart: unless-stopped
 
   gtm-server:
+    profiles:
+      - gtm
     image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
     depends_on:
       gtm-preview:
-        condition: service_healthy
+        # Start even when preview is unhealthy, so an empty Container Config
+        # fails this service's own healthcheck instead of skipping it.
+        condition: service_started
     environment:
-      CONTAINER_CONFIG: ${GTM_CONTAINER_CONFIG:?Set GTM_CONTAINER_CONFIG in .env}
+      CONTAINER_CONFIG: ${GTM_CONTAINER_CONFIG:-}
       # Local-only: the docs expect an HTTPS preview URL. Plain HTTP across
       # the compose network is a known local-dev limitation — see docs/README.md.
       PREVIEW_SERVER_URL: http://gtm-preview:8080

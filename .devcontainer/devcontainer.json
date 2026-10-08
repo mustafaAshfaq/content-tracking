@@ -1,0 +1,14 @@
+{
+  "name": "Content Personalization Platform",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "runServices": ["postgres", "rudderstack", "mock-destinations", "app"],
+  "forwardPorts": [3000, 5432, 8080, 8081, 8082, 8090],
+  "overrideCommand": true,
+  "postCreateCommand": "npm ci && npm ci --prefix services/mock-destinations",
+  "postStartCommand": "node .devcontainer/start-app.mjs",
+  "remoteEnv": {
+    "POSTGRES_HOST": "postgres"
+  }
+}

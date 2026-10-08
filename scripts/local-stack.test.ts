@@ -59,6 +59,9 @@ describe("default Compose stack", () => {
       expect(block).toContain("${GTM_CONTAINER_CONFIG:-}");
       expect(block).not.toContain("${GTM_CONTAINER_CONFIG:?");
     }
+
+    expect(compose.get("gtm-server")).toContain("condition: service_started");
+    expect(compose.get("gtm-server")).not.toContain("service_healthy");
   });
 
   it("keeps the published host ports", () => {

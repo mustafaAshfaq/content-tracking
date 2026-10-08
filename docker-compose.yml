@@ -90,7 +90,9 @@ services:
     image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
     depends_on:
       gtm-preview:
-        condition: service_healthy
+        # Start even when preview is unhealthy, so an empty Container Config
+        # fails this service's own healthcheck instead of skipping it.
+        condition: service_started
     environment:
       CONTAINER_CONFIG: ${GTM_CONTAINER_CONFIG:-}
       # Local-only: the docs expect an HTTPS preview URL. Plain HTTP across
